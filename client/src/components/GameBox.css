@@ -1,0 +1,297 @@
+#game {
+  min-height: 80vh;
+
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(260px, 1fr);
+  gap: 16px;
+
+  padding: 24px;
+
+  background: #0a0a0a;
+  color: #f5f5f5;
+
+  box-sizing: border-box;
+}
+
+/* =========================
+   GAME AREA
+   ========================= */
+
+#game-box {
+  min-width: 0;
+  height: 600px;
+
+  padding: 24px;
+
+  box-sizing: border-box;
+
+  background: #111111;
+  border: 1px solid #292929;
+  border-radius: 4px;
+}
+
+/* =========================
+   GAME HEADER
+   ========================= */
+
+.game-box-header {
+  height: 64px;
+
+  margin: -24px -24px 0;
+  padding: 0 24px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  box-sizing: border-box;
+
+  border-bottom: 1px solid #292929;
+}
+
+.game-box-header > div {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.game-box-label {
+  display: block;
+
+  margin-bottom: 4px;
+
+  color: #e63946;
+
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  line-height: 1;
+}
+
+.game-box-header h2 {
+  margin: 0;
+
+  color: #f5f5f5;
+
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/* =========================
+   NEW GAME BUTTON
+   ========================= */
+
+.new-game-button {
+  height: 34px;
+
+  padding: 0 14px;
+
+  border: none;
+  border-radius: 3px;
+
+  background: #e63946;
+  color: white;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: background 0.15s ease;
+}
+
+.new-game-button:hover {
+  background: #c92f3b;
+}
+
+/* =========================
+   GAME LIST
+   ========================= */
+
+#game-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+
+  gap: 12px;
+
+  margin-top: 20px;
+}
+
+/* =========================
+   WAITING GAME
+   ========================= */
+
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  padding-bottom: 24px;
+
+  border-bottom: 1px solid #292929;
+}
+
+.game-label {
+  display: block;
+
+  margin-bottom: 6px;
+
+  color: #e63946;
+
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+}
+
+.game-header h2 {
+  margin: 0;
+
+  color: #f5f5f5;
+
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.players-section {
+  margin-top: 28px;
+}
+
+.players-section h3 {
+  margin: 0 0 8px;
+
+  color: #f5f5f5;
+
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.players-section p {
+  margin: 0;
+
+  color: #666666;
+}
+
+/* =========================
+   LEAVE BUTTON
+   ========================= */
+
+.leave-button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  padding: 6px 2px;
+
+  border: none;
+  background: transparent;
+
+  color: #888888;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: color 0.15s ease;
+}
+
+.leave-button:hover {
+  color: #f5f5f5;
+}
+
+/* Custom arrow */
+
+.leave-arrow {
+  position: relative;
+
+  width: 20px;
+  height: 10px;
+
+  display: block;
+}
+
+.leave-arrow::before {
+  content: "";
+
+  position: absolute;
+  left: 0;
+  top: 4px;
+
+  width: 18px;
+  height: 1px;
+
+  background: currentColor;
+
+  transition: width 0.2s ease;
+}
+
+.leave-arrow::after {
+  content: "";
+
+  position: absolute;
+  left: 0;
+  top: 1px;
+
+  width: 7px;
+  height: 7px;
+
+  border-left: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+
+  transform: rotate(45deg);
+
+  transition: transform 0.2s ease;
+}
+
+.leave-button:hover .leave-arrow::before {
+  width: 21px;
+}
+
+.leave-button:hover .leave-arrow::after {
+  transform: translateX(-2px) rotate(45deg);
+}
+
+/* =========================
+   RESPONSIVE
+   ========================= */
+
+@media (max-width: 1100px) {
+  #game-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 800px) {
+  #game {
+    grid-template-columns: 1fr;
+  }
+
+  #game-box {
+    height: 600px;
+  }
+
+  #game-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 500px) {
+  #game {
+    padding: 12px;
+  }
+
+  #game-box {
+    padding: 16px;
+    height: 500px;
+  }
+
+  #game-list {
+    grid-template-columns: 1fr;
+  }
+
+  .game-box-header {
+    margin: -16px -16px 0;
+    padding: 0 16px;
+  }
+}

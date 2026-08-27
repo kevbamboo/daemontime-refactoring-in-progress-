@@ -1,0 +1,193 @@
+.game-card {
+  height: 135px;
+  perspective: 1000px;
+}
+
+.game-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* =========================
+   FLIPPING CONTENT
+   ========================= */
+
+.game-card-flip {
+  position: absolute;
+  inset: 0;
+  transition: transform 0.45s ease;
+  transform-style: preserve-3d;
+}
+
+.game-card:hover .game-card-flip {
+  transform: rotateY(180deg);
+}
+
+.game-card-front,
+.game-card-back {
+  position: absolute;
+  inset: 0;
+
+  box-sizing: border-box;
+  padding: 18px;
+
+  background: #111111;
+  border: 1px solid #292929;
+  border-radius: 4px;
+
+  backface-visibility: hidden;
+}
+
+/* =========================
+   FRONT
+   ========================= */
+
+.game-card-front {
+  display: flex;
+  flex-direction: column;
+}
+
+.game-card-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  color: #999999;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #35c759;
+}
+
+.status-dot.started {
+  background: #e63946;
+}
+
+.game-card-info {
+  display: flex;
+  gap: 30px;
+  margin-top: auto;
+}
+
+.game-card-info div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.game-card-info span {
+  color: #666666;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.game-card-info strong {
+  color: #cccccc;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* =========================
+   BACK
+   ========================= */
+
+.game-card-back {
+  display: flex;
+  flex-direction: column;
+
+  transform: rotateY(180deg);
+}
+
+.game-card-back-title {
+  color: #e63946;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+}
+
+.game-card-details {
+  display: flex;
+  gap: 35px;
+  margin-top: 12px;
+}
+
+.game-card-details div {
+  display: flex;
+  flex-direction: column;
+}
+
+.game-card-details strong {
+  color: #f5f5f5;
+  font-size: 20px;
+}
+
+.game-card-details span {
+  color: #777777;
+  font-size: 10px;
+}
+
+/* =========================
+   FIXED JOIN BUTTON
+   ========================= */
+
+.game-card-join-button {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  z-index: 10;
+
+  height: 34px;
+  padding: 0 13px;
+
+  border: none;
+  border-radius: 3px;
+
+  background: #e63946;
+  color: white;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition: background 0.15s ease;
+}
+
+.game-card-join-button:hover {
+  background: #c92f3b;
+}
+
+.game-card-join-button:disabled {
+  background: #333333;
+  color: #777777;
+  cursor: not-allowed;
+}
+
+.game-card-join-button span {
+  margin-left: 4px;
+}
+
+/* =========================
+   RESPONSIVE
+   ========================= */
+
+@media (max-width: 1100px) {
+  .game-card {
+    height: 135px;
+  }
+}
+
+@media (max-width: 500px) {
+  .game-card {
+    height: 140px;
+  }
+}
