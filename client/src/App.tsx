@@ -23,7 +23,10 @@ export default function App() {
 
       if (session) {
         setAuthenticated(true);
-        await socketService.connect(session.access_token);
+        await socketService.connect(
+          session.access_token,
+          session.user.user_metadata.username,
+        );
       }
 
       setInitializing(false);
@@ -36,7 +39,10 @@ export default function App() {
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session) {
         setAuthenticated(true);
-        await socketService.connect(session.access_token);
+        await socketService.connect(
+          session.access_token,
+          session.user.user_metadata.username,
+        );
       } else {
         setAuthenticated(false);
         socketService.disconnect();

@@ -7,6 +7,7 @@ type GameCardProps = {
   started: boolean;
   setGameState: React.Dispatch<React.SetStateAction<number>>;
   setCurrentGameId: React.Dispatch<React.SetStateAction<string>>;
+  setCurrentGameHost: React.Dispatch<React.SetStateAction<string>>;
 };
 
 export default function GameCard({
@@ -15,11 +16,19 @@ export default function GameCard({
   started,
   setGameState,
   setCurrentGameId,
+  setCurrentGameHost,
 }: GameCardProps) {
   async function joinGame() {
+    const joined = await socketService.joinGame(gameId);
+    if (!joined) {
+      return;
+    }
+
+    socketService.isCurrentGameHost = false;
     setGameState(1);
     await socketService.setUpGameSockets(gameId);
     setCurrentGameId(gameId);
+    setCurrentGameHost(host);
   }
 
   return (

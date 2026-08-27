@@ -3,7 +3,8 @@ import { io, Socket } from "socket.io-client";
 export type Game = {
   gameId: string;
   host: string;
-  numPlayers: string;
+  numPlayers: number;
+  players: string[];
   started: boolean;
 };
 
@@ -13,21 +14,35 @@ class SocketService {
   lobbyMessages: string[] = [];
   gameMessages: string[] = [];
   currentGameId = "";
+  username = "";
+  currentGameHost = "";
+  isCurrentGameHost = false;
 
   private games = new Map<string, Game>();
 
   private gameListeners = new Set<(games: Game[]) => void>();
 
-  connect(token: string) {
+  connect(token: string, username?: string) {
     if (this.socket) {
       return;
     }
 
+    if (username) {
+      this.username = username;
+    }
     this.socket = io("http://localhost:3000", {
       auth: {
         token,
       },
+      autoConnect: false,
     });
+
+    this.socket.on(
+      "socket-identity",
+      ({ username: socketUsername }: { username: string }) => {
+        this.username = socketUsername;
+      },
+    );
 
     this.socket.on("connect", () => {
       console.log("Socket connected:", this.socket?.id);
@@ -50,6 +65,19 @@ class SocketService {
     this.socket.on("new-host", (gameId: string, host: string) => {
       let game = this.games.get(gameId);
       if (game) game.host = host;
+      if (gameId === this.currentGameId) this.currentGameHost = host;
+      if (gameId === this.currentGameId) {
+        this.isCurrentGameHost = host === this.username;
+      }
+      this.notifyGamesChanged();
+    });
+
+    this.socket.on("game-players", (gameId: string, players: string[]) => {
+      const game = this.games.get(gameId);
+      if (game) {
+        game.players = players;
+        game.numPlayers = players.length;
+      }
       this.notifyGamesChanged();
     });
 
@@ -69,6 +97,8 @@ class SocketService {
     this.socket.on("lobby-message", (message: string) => {
       this.lobbyMessages.push(message);
     });
+
+    this.socket.connect();
   }
 
   disconnect() {
@@ -141,35 +171,44 @@ class SocketService {
         this.gameMessages.push(message);
       });
 
-      this.socket?.on("new-question", (question: string) => {});
+      this.socket?.on("new-question", () => {});
 
-      this.socket?.on(
-        "new-scores",
-        (scores: { username: string; score: number }[]) => {},
-      );
+      this.socket?.on("new-scores", () => {});
       resolve();
     });
   }
 
-  createGame(): Promise<void> {
+  createGame(): Promise<Game> {
     return new Promise((resolve) => {
       console.log("created");
       this.socket?.emit("create-game", async (game: Game) => {
         this.games.set(game.gameId, game);
+        this.currentGameHost = game.host;
+        this.isCurrentGameHost = true;
 
         this.notifyGamesChanged();
 
         await this.setUpGameSockets(game.gameId);
 
-        resolve();
+        resolve(game);
       });
     });
   }
 
-  joinGame(gameId: string): Promise<void> {
+  joinGame(gameId: string): Promise<boolean> {
     return new Promise((resolve) => {
-      this.socket?.emit("join-game", gameId, () => {
-        resolve();
+      if (!this.socket) {
+        resolve(false);
+        return;
+      }
+
+      this.socket?.emit("join-game", gameId, (joined: boolean) => {
+        if (joined) {
+          this.currentGameId = gameId;
+          this.isCurrentGameHost = false;
+          this.notifyGamesChanged();
+        }
+        resolve(joined);
       }); // callback and resolve()
     });
   }

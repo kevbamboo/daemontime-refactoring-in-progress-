@@ -9,7 +9,7 @@ export default function GameBox() {
 
   const [gameState, setGameState] = useState(0);
   const [currentGameId, setCurrentGameId] = useState("");
-
+  const [currentGameHost, setCurrentGameHost] = useState("");
   const [games, setGames] = useState<Game[]>([]);
 
   const numCases = 4;
@@ -42,11 +42,12 @@ export default function GameBox() {
   }
 
   async function newGame() {
-    await socketService.createGame();
+    const game = await socketService.createGame();
 
     console.log(socketService.currentGameId);
 
-    setCurrentGameId(socketService.currentGameId);
+    setCurrentGameId(game.gameId);
+    setCurrentGameHost(game.host);
     setGameState(1);
   }
 
@@ -58,6 +59,12 @@ export default function GameBox() {
   }
 
   function getGame() {
+    const activeGameHost =
+      games.find((game) => game.gameId === currentGameId)?.host ??
+      currentGameHost;
+    const activeGame = games.find((game) => game.gameId === currentGameId);
+    const players = activeGame?.players ?? [activeGameHost];
+
     switch (gameState) {
       case 0:
         return (
@@ -82,6 +89,7 @@ export default function GameBox() {
                   started={game.started}
                   setGameState={setGameState}
                   setCurrentGameId={setCurrentGameId}
+                  setCurrentGameHost={setCurrentGameHost}
                 />
               ))}
             </div>
@@ -105,7 +113,24 @@ export default function GameBox() {
 
             <div className="players-section">
               <h3>Players</h3>
-              <p>Waiting for players to join...</p>
+              {players.length <= 1 ? (
+                <p>Waiting for players to join...</p>
+              ) : (
+                <ol>
+                  {players.map((player) => (
+                    <li key={player}>{player}</li>
+                  ))}
+                </ol>
+              )}
+              {(socketService.isCurrentGameHost ||
+                activeGameHost === socketService.username) && (
+                <button
+                  className="start-game-button"
+                  onClick={() => socketService.startGame(currentGameId)}
+                >
+                  Start Game
+                </button>
+              )}
             </div>
           </>
         );

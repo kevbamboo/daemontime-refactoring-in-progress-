@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase.js";
 export default function setUpSocket(io) {
   io.use(async (socket, next) => {
     try {
+      let onlineUsers = new Set();
       const token = socket.handshake.auth.token;
 
       if (!token) {
@@ -31,6 +32,8 @@ export default function setUpSocket(io) {
         socket.data.isGuest = false;
       }
 
+      onlineUsers.add(socket.data.username);
+
       next();
     } catch (error) {
       next(new Error("Authentication failed"));
@@ -45,6 +48,52 @@ export default function setUpSocket(io) {
   // on join lobby, bind socket id to username
   io.on("connection", (socket) => {
     console.log("SOCKET CONNECTED:", socket.id);
+    socket.emit("socket-identity", {
+      username: socket.data.username,
+      //isGuest: socket.data.isGuest,
+    });
+
+    function leaveGame(gameId) {
+      const game = games.get(gameId);
+      const room = io.sockets.adapter.rooms.get(gameId);
+
+      if (!game || !game.players?.includes(socket.data.username)) {
+        return false;
+      }
+
+      const wasHost = game.host === socket.data.username;
+      game.players = game.players.filter(
+        (player) => player !== socket.data.username,
+      );
+      socket.leave(gameId);
+
+      if (game.players.length === 0) {
+        games.delete(gameId);
+        io.emit("game-deleted", gameId);
+        return true;
+      }
+
+      if (wasHost) {
+        game.host = game.players[0];
+        io.to(gameId).emit("new-host", gameId, game.host);
+      }
+
+      game.numPlayers = game.players.length;
+      io.to(gameId).emit("game-players", gameId, game.players);
+      return true;
+    }
+
+    socket.on("disconnecting", () => {
+      if (!socket.data.isGuest) {
+        return;
+      }
+
+      for (const gameId of socket.rooms) {
+        if (gameId !== socket.id && gameId !== "lobby") {
+          leaveGame(gameId);
+        }
+      }
+    });
 
     socket.on("join-lobby", (callback) => {
       socket.join("lobby");
@@ -68,7 +117,9 @@ export default function setUpSocket(io) {
           gameId,
           host: socket.data.username,
           numPlayers: 1,
+          players: [socket.data.username],
           started: false,
+          questions: {},
         };
         console.log(socket.data.username);
         console.log("USERNAME ABOVE");
@@ -79,43 +130,64 @@ export default function setUpSocket(io) {
       });
 
       socket.on("join-game", (gameId, callback) => {
+        if (!games.get(gameId)) {
+          callback(false);
+          return;
+        }
+
+        if (games.get(gameId).started) {
+          callback(false);
+          return;
+        }
+
         const room = io.sockets.adapter.rooms.get(gameId);
         const playerCount = room?.size ?? 0;
         if (playerCount == 0) {
-        } // TODO: DON"T ALLOW ENTER
+          callback(false);
+          return;
+        }
+        // don't let join if already in a game?
+        /*if (socket.rooms.size > 1) {
+          callback(false);
+          return;
+        }*/
 
-        // don't let join if already in a game? or let
         socket.join(gameId);
-        callback();
+        const game = games.get(gameId);
+        if (!game.players.includes(socket.data.username)) {
+          game.players.push(socket.data.username);
+        }
+        game.numPlayers = game.players.length;
+        io.to(gameId).emit("game-players", gameId, game.players);
+        callback(true);
         // way to tell everyone only in room that you joined?
         // should we store this in db or just in sockets?
       });
 
-      socket.on("start-game", (gameId) => {
+      socket.on("start-game", (gameId, callback) => {
+        if (!games.get(gameId)) {
+          callback(false);
+          return;
+        }
         if (games.get(gameId).started) {
         } else {
           // check is host, change map element
-          io.emit("game-started", gameId);
+          if (socket.data.username == games.get(gameId).host) {
+            let gameValue = games.get(gameId);
+            gameValue.started = true;
+            io.emit("game-started", gameId);
+            callback(true);
+          } else {
+            callback(false);
+            return;
+          }
         }
       });
 
       socket.on("leave-game", (gameId, callback) => {
-        // need user id or socket.id
         callback = typeof callback === "function" ? callback : () => {};
 
-        const room = io.sockets.adapter.rooms.get(gameId);
-        const playerCount = room?.size ?? 0;
-        if (playerCount == 0) {
-          /* throw error?*/
-        }
-        socket.leave(gameId);
-        if (playerCount == 1) {
-          io.emit("game-deleted", gameId);
-          games.delete(gameId);
-          callback("empty");
-        } else {
-          callback("left");
-        }
+        callback(leaveGame(gameId) ? "left" : false);
       });
 
       socket.on("game-message", (gameId, message) => {
