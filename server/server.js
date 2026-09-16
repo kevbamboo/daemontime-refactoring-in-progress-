@@ -5,6 +5,8 @@ import { Server } from "socket.io";
 import dotenv from "dotenv";
 import setUpSocket from "./socket/index.socket.js";
 import apiRoutes from "./routes/api.routes.js";
+import { supabase } from "./lib/supabase.js";
+import { createGameStore } from "./db/game-store.js";
 dotenv.config();
 
 const app = express();
@@ -19,6 +21,7 @@ const io = new Server(server, {
 });
 
 app.use(express.json());
+app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
 
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.url}`);
@@ -27,9 +30,30 @@ app.use((req, res, next) => {
 
 app.use("/api", apiRoutes);
 
-setUpSocket(io);
+const store = await createGameStore(supabase, {
+  timeLimit: Number(process.env.GAME_TIME_LIMIT_SECONDS ?? 30),
+  numberOfProblems: Number(process.env.GAME_NUMBER_OF_PROBLEMS ?? 5),
+});
+const stopSockets = setUpSocket(io, {
+  store,
+  authenticate: async (token) => {
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error) throw error;
+    return user;
+  },
+});
+let closing = false;
+function shutdown() {
+  if (closing) return;
+  closing = true;
+  stopSockets();
+  io.close();
+}
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
+server.on('error', (error) => { console.error(error); shutdown(); process.exitCode = 1; });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+  console.log(`Server listening on port ${server.address().port}`);
 });

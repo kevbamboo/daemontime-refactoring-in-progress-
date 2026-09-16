@@ -1,20 +1,18 @@
+import { useState } from 'react';
 import "./AuthModal.css";
 import { guestLogin } from "../services/auth.service";
 import { useNavigate } from "react-router-dom";
 
-type AuthModalProps = {
-  setAuthenticated: React.Dispatch<React.SetStateAction<boolean>>;
-};
-
-export default function AuthModal({ setAuthenticated }: AuthModalProps) {
+export default function AuthModal() {
   const navigate = useNavigate();
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
 
   async function handleGuestLogin() {
-    const { error } = await guestLogin();
-
-    if (!error) {
-      setAuthenticated(true);
-    }
+    setBusy(true);
+    try { const result = await guestLogin(); setError(result.error?.message ?? ''); }
+    catch { setError('Unable to sign in. Please retry.'); }
+    finally { setBusy(false); }
   }
 
   return (
@@ -26,8 +24,8 @@ export default function AuthModal({ setAuthenticated }: AuthModalProps) {
 
         <p>Choose how you'd like to continue.</p>
 
-        <div className="auth-options">
-          <button className="guest-button" onClick={handleGuestLogin}>
+        {error && <p role="alert">{error}</p>}<div className="auth-options">
+          <button className="guest-button" onClick={handleGuestLogin} disabled={busy}>
             Continue as Guest
           </button>
 

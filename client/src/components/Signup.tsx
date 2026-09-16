@@ -3,12 +3,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { signup } from "../services/auth.service";
 import "./Signup.css";
 
-type SignupProps = {
-  setAuthenticated: React.Dispatch<React.SetStateAction<boolean>>;
-};
-
-export default function Signup({ setAuthenticated }: SignupProps) {
+export default function Signup() {
   const navigate = useNavigate();
+  const [notice, setNotice] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
   async function handleSignup(e: SubmitEvent) {
@@ -27,21 +24,21 @@ export default function Signup({ setAuthenticated }: SignupProps) {
       const { data, error } = await signup(email, username, password);
 
       if (error) {
-        console.error("Signup error:", error);
+        setNotice(error.message);
         return;
       }
 
-      console.log("Signed up:", data);
-      setAuthenticated(true);
-      navigate("/");
+
+
+      if (data.session) navigate("/"); else setNotice("Check your email to confirm your account before logging in.");
     } catch (err) {
-      console.error("Signup exception:", err);
+      setNotice(err instanceof Error ? err.message : "Unable to sign up. Please retry.");
     }
   }
 
   return (
     <div id="signup-page">
-      <form id="signup-form" onSubmit={handleSignup}>
+      {notice && <p role="status">{notice}</p>}<form id="signup-form" onSubmit={handleSignup}>
         <div className="signup-header">
           <h1>Create your account</h1>
           <p>Start practicing and improve your SAT score.</p>

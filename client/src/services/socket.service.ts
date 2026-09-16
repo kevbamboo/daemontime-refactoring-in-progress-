@@ -1,233 +1,107 @@
-import { io, Socket } from "socket.io-client";
-
-export type Game = {
-  gameId: string;
-  host: string;
-  numPlayers: number;
-  players: string[];
-  started: boolean;
-};
+import { io, Socket } from 'socket.io-client';
+export type Player = { id: string; username: string };
+export type GameOptions = { timeLimit: number; numberOfProblems: number };
+export type Game = GameOptions & { gameId: string; hostId: string; players: Player[]; started: boolean; startedAt?: number };
+export type ChatMessage = { id: string; userId: string; username: string; text: string; gameId: string | null };
+type Reply<T> = { ok: true; data: T } | { ok: false; error: string };
 
 class SocketService {
   private socket: Socket | null = null;
-
-  lobbyMessages: string[] = [];
-  gameMessages: string[] = [];
-  currentGameId = "";
-  username = "";
-  currentGameHost = "";
-  isCurrentGameHost = false;
-
-  private games = new Map<string, Game>();
-
+  private games: Game[] = [];
   private gameListeners = new Set<(games: Game[]) => void>();
-
-  connect(token: string, username?: string) {
+  private messageListeners = new Set<() => void>();
+  private statusListeners = new Set<() => void>();
+  error = '';
+  ready = false;
+  userId = '';
+  username = '';
+  lobbyMessages: ChatMessage[] = [];
+  gameMessages: ChatMessage[] = [];
+  get currentGame() { return this.games.find(g => g.players.some(p => p.id === this.userId)); }
+  get currentGameId() { return this.currentGame?.gameId ?? ''; }
+  get isCurrentGameHost() { return !!this.userId && this.currentGame?.hostId === this.userId; }
+  private notifyStatus() { for (const listener of this.statusListeners) listener(); }
+  private acceptGames(games: Game[]) {
+    const previous = this.currentGameId;
+    this.games = games;
+    if (previous !== this.currentGameId) { this.gameMessages = []; this.notifyMessages(); }
+    for (const listener of this.gameListeners) listener(this.games);
+  }
+  connect(token: string, userId: string) {
+    if (this.socket && this.userId !== userId) this.disconnect();
+    this.userId = userId;
     if (this.socket) {
+      this.socket.auth = { token };
+      if (!this.socket.connected) this.socket.connect();
       return;
     }
-
-    if (username) {
-      this.username = username;
-    }
-    this.socket = io("http://localhost:3000", {
-      auth: {
-        token,
-      },
-      autoConnect: false,
+    const socket = io(import.meta.env.VITE_SOCKET_URL || window.location.origin, { auth: { token }, autoConnect: false });
+    this.socket = socket;
+    socket.on('socket-identity', (identity: { userId: string; username: string }) => {
+      this.userId = identity.userId; this.username = identity.username;
     });
-
-    this.socket.on(
-      "socket-identity",
-      ({ username: socketUsername }: { username: string }) => {
-        this.username = socketUsername;
-      },
-    );
-
-    this.socket.on("connect", () => {
-      console.log("Socket connected:", this.socket?.id);
+    socket.on('connect', () => { void this.joinLobby().catch(error => this.reportError(error)); });
+    socket.on('disconnect', () => { this.ready = false; this.error = 'Connection lost. Reconnecting…'; this.notifyStatus(); });
+    socket.on('connect_error', (error: Error) => this.reportError(error));
+    socket.on('games-snapshot', (games: Game[]) => this.acceptGames(games));
+    socket.on('chat-message', (message: ChatMessage) => {
+      if (message.gameId === null) this.lobbyMessages = [...this.lobbyMessages.slice(-199), message];
+      else if (message.gameId === this.currentGameId) this.gameMessages = [...this.gameMessages.slice(-199), message];
+      this.notifyMessages();
     });
-
-    this.socket.on("disconnect", () => {
-      console.log("Socket disconnected");
-    });
-
-    this.socket.on("connect_error", (error) => {
-      console.error("Socket connection error:", error.message);
-    });
-
-    this.socket.on("game-created", (game: Game) => {
-      this.games.set(game.gameId, game);
-
-      this.notifyGamesChanged();
-    });
-
-    this.socket.on("new-host", (gameId: string, host: string) => {
-      let game = this.games.get(gameId);
-      if (game) game.host = host;
-      if (gameId === this.currentGameId) this.currentGameHost = host;
-      if (gameId === this.currentGameId) {
-        this.isCurrentGameHost = host === this.username;
-      }
-      this.notifyGamesChanged();
-    });
-
-    this.socket.on("game-players", (gameId: string, players: string[]) => {
-      const game = this.games.get(gameId);
-      if (game) {
-        game.players = players;
-        game.numPlayers = players.length;
-      }
-      this.notifyGamesChanged();
-    });
-
-    this.socket.on("game-started", (gameId: string) => {
-      let game = this.games.get(gameId);
-      if (game) game.started = true;
-
-      this.notifyGamesChanged();
-    });
-
-    this.socket.on("game-deleted", (gameId: string) => {
-      this.games.delete(gameId);
-
-      this.notifyGamesChanged();
-    });
-
-    this.socket.on("lobby-message", (message: string) => {
-      this.lobbyMessages.push(message);
-    });
-
-    this.socket.connect();
+    socket.connect();
   }
-
+  reportError(error: unknown) {
+    this.error = error instanceof Error ? error.message : 'Request failed'; this.notifyStatus();
+  }
+  async retryConnection() {
+    if (!this.socket) throw new Error('Sign in before connecting');
+    if (!this.socket.connected) { this.socket.connect(); return; }
+    await this.joinLobby();
+  }
   disconnect() {
-    this.socket?.disconnect();
-    this.socket = null;
+    this.socket?.removeAllListeners(); this.socket?.disconnect(); this.socket = null;
+    this.ready = false; this.error = ''; this.userId = ''; this.username = '';
+    this.lobbyMessages = []; this.gameMessages = []; this.acceptGames([]); this.notifyMessages(); this.notifyStatus();
   }
-
   subscribeToGames(listener: (games: Game[]) => void) {
-    this.gameListeners.add(listener);
-
-    // Return unsubscribe function
-    return () => {
-      this.gameListeners.delete(listener);
-    };
+    this.gameListeners.add(listener); listener(this.games);
+    return () => { this.gameListeners.delete(listener); };
   }
-
-  private notifyGamesChanged() {
-    // is this async?
-    const games = Array.from(this.games.values());
-
-    console.log("NOTIFYING GAME LISTENERS", games);
-
-    for (const listener of this.gameListeners) {
-      listener(games);
-    }
+  subscribeToStatus(listener: () => void) {
+    this.statusListeners.add(listener);
+    return () => { this.statusListeners.delete(listener); };
   }
-
-  getGames(): Promise<void> {
-    return new Promise((resolve) => {
-      if (!this.socket) {
-        resolve();
-        return;
-      }
-
-      this.socket.emit("open-games", (games: Game[]) => {
-        this.games = new Map(games.map((game) => [game.gameId, game]));
-
-        this.notifyGamesChanged();
-
-        resolve();
+  subscribeToMessages(listener: () => void) {
+    this.messageListeners.add(listener);
+    return () => { this.messageListeners.delete(listener); };
+  }
+  private notifyMessages() { for (const listener of this.messageListeners) listener(); }
+  private request<T>(event: string, ...args: unknown[]): Promise<T> {
+    const socket = this.socket;
+    if (!socket?.connected) return Promise.reject(new Error('Not connected. Please retry when connected.'));
+    return new Promise((resolve, reject) => {
+      socket.timeout(8000).emit(event, ...args, (error: Error | null, reply: Reply<T>) => {
+        if (socket !== this.socket) return reject(new Error('Session changed'));
+        if (error) return reject(new Error('Request timed out. Please retry.'));
+        if (!reply?.ok) return reject(new Error(reply?.error || 'Invalid server response'));
+        this.error = ''; this.notifyStatus();
+        resolve(reply.data);
       });
     });
   }
-
-  joinLobby(): Promise<void> {
-    return new Promise((resolve) => {
-      if (!this.socket) {
-        resolve();
-        return;
-      }
-
-      this.socket.emit("join-lobby", async () => {
-        await this.getGames();
-
-        resolve();
-      });
-    });
+  async joinLobby() {
+    const socket = this.socket;
+    const games = await this.request<Game[]>('join-lobby');
+    if (socket !== this.socket || !socket?.connected) return;
+    this.acceptGames(games); this.ready = true; this.error = ''; this.notifyStatus();
   }
-
-  lobbyMessage(message: string) {
-    this.lobbyMessages.push(message);
-    this.socket?.emit("lobby-message", message);
-  }
-
-  setUpGameSockets(gameId: string): Promise<void> {
-    return new Promise((resolve) => {
-      this.currentGameId = gameId;
-
-      this.socket?.on("game-message", (message: string) => {
-        this.gameMessages.push(message);
-      });
-
-      this.socket?.on("new-question", () => {});
-
-      this.socket?.on("new-scores", () => {});
-      resolve();
-    });
-  }
-
-  createGame(): Promise<Game> {
-    return new Promise((resolve) => {
-      console.log("created");
-      this.socket?.emit("create-game", async (game: Game) => {
-        this.games.set(game.gameId, game);
-        this.currentGameHost = game.host;
-        this.isCurrentGameHost = true;
-
-        this.notifyGamesChanged();
-
-        await this.setUpGameSockets(game.gameId);
-
-        resolve(game);
-      });
-    });
-  }
-
-  joinGame(gameId: string): Promise<boolean> {
-    return new Promise((resolve) => {
-      if (!this.socket) {
-        resolve(false);
-        return;
-      }
-
-      this.socket?.emit("join-game", gameId, (joined: boolean) => {
-        if (joined) {
-          this.currentGameId = gameId;
-          this.isCurrentGameHost = false;
-          this.notifyGamesChanged();
-        }
-        resolve(joined);
-      }); // callback and resolve()
-    });
-  }
-
-  startGame(gameId: string): Promise<void> {
-    return new Promise((resolve) => {
-      this.socket?.emit("start-game", gameId, () => {
-        resolve();
-      }); //callback and resolve()
-    });
-  }
-
-  leaveGame(gameId: string): Promise<void> {
-    return new Promise((resolve) => {
-      this.socket?.emit("leave-game", gameId, () => {
-        resolve();
-      }); //callback and resolve()
-    });
+  async createGame(options: GameOptions) { return this.request<Game>('create-game', options); }
+  async joinGame(id: string) { return this.request<Game>('join-game', id); }
+  async startGame(id: string) { return this.request<boolean>('start-game', id); }
+  async leaveGame(id: string) { return this.request<boolean>('leave-game', id); }
+  async sendMessage(text: string, gameId?: string) {
+    return gameId ? this.request<boolean>('game-message', gameId, text) : this.request<boolean>('lobby-message', text);
   }
 }
-
 export const socketService = new SocketService();

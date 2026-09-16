@@ -3,17 +3,14 @@ import { Link, useNavigate } from "react-router-dom";
 import { login } from "../services/auth.service";
 import "./Login.css";
 
-type LoginProps = {
-  setAuthenticated: React.Dispatch<React.SetStateAction<boolean>>;
-};
-
-export default function Login({ setAuthenticated }: LoginProps) {
+export default function Login() {
   const navigate = useNavigate();
+  const [notice, setNotice] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
   async function handleLogin(e: SubmitEvent) {
     e.preventDefault();
-    console.log("handling");
+
 
     const form = e.currentTarget as HTMLFormElement;
 
@@ -21,20 +18,20 @@ export default function Login({ setAuthenticated }: LoginProps) {
 
     const password = (form.elements.namedItem("password") as HTMLInputElement)
       .value;
-    console.log(1);
+
     try {
-      const { data, error } = await login(email, password);
+      const { error } = await login(email, password);
 
       if (error) {
-        console.error("Login error:", error);
+        setNotice(error.message);
         return;
       }
 
-      console.log("Logged in:", data);
-      setAuthenticated(true);
+
+
       navigate("/");
     } catch (err) {
-      console.error("Login exception:", err);
+      setNotice(err instanceof Error ? err.message : "Unable to log in. Please retry.");
     }
   }
 
@@ -48,7 +45,7 @@ export default function Login({ setAuthenticated }: LoginProps) {
           <p>Keep working toward your SAT goals.</p>
         </div>
 
-        <form id="login-form" onSubmit={handleLogin}>
+        {notice && <p role="alert">{notice}</p>}<form id="login-form" onSubmit={handleLogin}>
           <div className="input-container">
             <input
               type="email"

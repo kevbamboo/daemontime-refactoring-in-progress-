@@ -1,16 +1,17 @@
+import { Link } from 'react-router-dom';
 import "./SiteHeader.css";
 
 export default function SiteHeader() {
   return (
     <header className="site-header">
       <div className="site-header-content">
-        <a href="/" className="site-logo">
+        <Link to="/" className="site-logo">
           Daemontime
-        </a>
+        </Link>
 
         <nav className="site-nav">
-          <a href="/">Home</a>
-          <a href="/games">Games</a>
+          <Link to="/">Home</Link>
+          <Link to="/games">Games</Link>
         </nav>
       </div>
     </header>

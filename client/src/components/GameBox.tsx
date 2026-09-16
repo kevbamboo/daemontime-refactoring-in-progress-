@@ -1,158 +1,43 @@
-import { useState, useEffect } from "react";
-import MessageBox from "./MessageBox";
-import GameCard from "./GameCard";
-import { socketService, type Game } from "../services/socket.service";
-import "./GameBox.css";
+import { useEffect, useState } from 'react';
+import MessageBox from './MessageBox';
+import GameCard from './GameCard';
+import NewGameModal from './NewGameModal';
+import { socketService, type Game } from '../services/socket.service';
+import './GameBox.css';
 
 export default function GameBox() {
-  const [loaded, setLoaded] = useState(false);
-
-  const [gameState, setGameState] = useState(0);
-  const [currentGameId, setCurrentGameId] = useState("");
-  const [currentGameHost, setCurrentGameHost] = useState("");
   const [games, setGames] = useState<Game[]>([]);
-
-  const numCases = 4;
-
+  const [, redraw] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const [creating, setCreating] = useState(false);
   useEffect(() => {
-    const unsubscribe = socketService.subscribeToGames((games) => {
-      setGames(games);
-    });
-
-    async function joinLobby() {
-      await socketService.joinLobby();
-
-      setLoaded(true);
-    }
-
-    joinLobby();
-
-    /*
-     * Remove the listener when GameBox unmounts.
-     */
-    return unsubscribe;
+    const gamesOff = socketService.subscribeToGames(setGames);
+    const statusOff = socketService.subscribeToStatus(() => redraw(n => n + 1));
+    return () => { gamesOff(); statusOff(); };
   }, []);
-
-  if (!loaded) {
-    return <div>Loading</div>;
+  const game = games.find(g => g.players.some(p => p.id === socketService.userId));
+  // Starting a game deliberately does not advance the gameplay screen yet.
+  const gameState = game ? 1 : 0;
+  async function action(fn: () => Promise<unknown>) {
+    setBusy(true);
+    try { await fn(); } catch (error) { socketService.reportError(error); }
+    finally { setBusy(false); }
   }
-
-  function setNextState() {
-    setGameState((gameState + 1) % numCases);
-  }
-
-  async function newGame() {
-    const game = await socketService.createGame();
-
-    console.log(socketService.currentGameId);
-
-    setCurrentGameId(game.gameId);
-    setCurrentGameHost(game.host);
-    setGameState(1);
-  }
-
-  function leaveBeforeStart() {
-    socketService.leaveGame(currentGameId);
-
-    setCurrentGameId("");
-    setGameState(0);
-  }
-
-  function getGame() {
-    const activeGameHost =
-      games.find((game) => game.gameId === currentGameId)?.host ??
-      currentGameHost;
-    const activeGame = games.find((game) => game.gameId === currentGameId);
-    const players = activeGame?.players ?? [activeGameHost];
-
-    switch (gameState) {
-      case 0:
-        return (
-          <>
-            <div className="game-box-header">
-              <div>
-                <span className="game-box-label">GAMES</span>
-                <h2>Lobby</h2>
-              </div>
-
-              <button className="new-game-button" onClick={newGame}>
-                New Game
-              </button>
-            </div>
-
-            <div id="game-list">
-              {games.map((game) => (
-                <GameCard
-                  key={game.gameId}
-                  gameId={game.gameId}
-                  host={game.host}
-                  started={game.started}
-                  setGameState={setGameState}
-                  setCurrentGameId={setCurrentGameId}
-                  setCurrentGameHost={setCurrentGameHost}
-                />
-              ))}
-            </div>
-          </>
-        );
-
-      case 1:
-        return (
-          <>
-            <div className="game-header">
-              <div>
-                <span className="game-label">GAME</span>
-                <h2>{currentGameId}</h2>
-              </div>
-
-              <button className="leave-button" onClick={leaveBeforeStart}>
-                <span className="leave-arrow" />
-                <span>Leave</span>
-              </button>
-            </div>
-
-            <div className="players-section">
-              <h3>Players</h3>
-              {players.length <= 1 ? (
-                <p>Waiting for players to join...</p>
-              ) : (
-                <ol>
-                  {players.map((player) => (
-                    <li key={player}>{player}</li>
-                  ))}
-                </ol>
-              )}
-              {(socketService.isCurrentGameHost ||
-                activeGameHost === socketService.username) && (
-                <button
-                  className="start-game-button"
-                  onClick={() => socketService.startGame(currentGameId)}
-                >
-                  Start Game
-                </button>
-              )}
-            </div>
-          </>
-        );
-
-      case 2:
-        return <button>Submit</button>;
-
-      case 3:
-        return <button onClick={setNextState}>Lobby</button>;
-
-      default:
-        return <div>Error Loading</div>;
-    }
-  }
-
-  return (
-    <div id="game">
-      <div id="game-box">
-        <div>{getGame()}</div>
-      </div>
-
+  return <div id="game">
+    {socketService.error && <p role="alert">{socketService.error}</p>}
+    {!socketService.ready ? <div>Connecting… <button onClick={() => void action(() => socketService.retryConnection())}>Retry</button></div> : <>
+      <div id="game-box">{!game ? <>
+        <div className="game-box-header"><h2>Lobby</h2><button className="new-game-button" disabled={busy} onClick={() => setCreating(true)}>New Game</button></div>
+        <div id="game-list">{games.map(g => <GameCard key={g.gameId} game={g} disabled={busy} onJoin={() => void action(() => socketService.joinGame(g.gameId))} />)}</div>
+      </> : <>
+        <div className="game-header"><h2>{game.gameId}</h2><button className="leave-button" disabled={busy} onClick={() => void action(() => socketService.leaveGame(game.gameId))}>Leave</button></div>
+        <div className="players-section"><h3>Players</h3><ol>{game.players.map(player => <li key={player.id}>{player.username}{player.id === game.hostId ? ' (Host)' : ''}</li>)}</ol>
+          {game.players.length === 1 && <p>Waiting for players to join...</p>}
+          {socketService.isCurrentGameHost && <button className="start-game-button" disabled={busy || game.started} onClick={() => void action(() => socketService.startGame(game.gameId))}>{game.started ? 'Started' : 'Start Game'}</button>}
+        </div>
+      </>}</div>
       <MessageBox gameState={gameState} />
-    </div>
-  );
+    </>}
+    {creating && <NewGameModal onClose={() => setCreating(false)} />}
+  </div>;
 }

@@ -1,12 +1,2 @@
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseUrl = "https://kygyugvojbzawohswyuv.supabase.co";
-const supabaseKey = "sb_publishable_sUbdY8ajIle7wiV3MuHm5Q_VHQ-Kxw_";
-
-export const supabase = createClient(supabaseUrl, supabaseKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-  },
-});
+import { createClient } from '@supabase/supabase-js';
+export const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
