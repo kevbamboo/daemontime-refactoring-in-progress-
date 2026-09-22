@@ -36,8 +36,12 @@ const store = await createGameStore(supabase, {
 });
 const stopSockets = setUpSocket(io, {
   store,
+  supabase,
   authenticate: async (token) => {
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser(token);
     if (error) throw error;
     return user;
   },
@@ -49,9 +53,13 @@ function shutdown() {
   stopSockets();
   io.close();
 }
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
-server.on('error', (error) => { console.error(error); shutdown(); process.exitCode = 1; });
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);
+server.on("error", (error) => {
+  console.error(error);
+  shutdown();
+  process.exitCode = 1;
+});
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {

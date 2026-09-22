@@ -1,5 +1,5 @@
-import type { Game } from '../services/socket.service';
-import './GameCard.css';
+import type { Game } from "../services/socket.service";
+import "./GameCard.css";
 
 type GameCardProps = {
   game: Game;
@@ -9,7 +9,9 @@ type GameCardProps = {
 
 export default function GameCard({ game, disabled, onJoin }: GameCardProps) {
   const { started } = game;
-  const host = game.players.find(player => player.id === game.hostId)?.username;
+  const host = game.players.find(
+    (player) => player.id === game.hostId,
+  )?.username;
 
   return (
     <div className="game-card">

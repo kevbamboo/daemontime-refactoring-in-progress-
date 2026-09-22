@@ -5,7 +5,6 @@ export default function SiteFooter() {
     <footer className="site-footer">
       <div className="site-footer-content">
         <span>© 2026 Daemontime</span>
-        <span>Play. Compete. Repeat.</span>
       </div>
     </footer>
   );

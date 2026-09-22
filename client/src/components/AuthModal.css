@@ -9,7 +9,6 @@
   padding: 20px;
 
   background: rgba(0, 0, 0, 0.78);
-  backdrop-filter: blur(4px);
 
   z-index: 1000;
 }
@@ -106,7 +105,7 @@
   justify-content: center;
 
   background: #e63946;
-  color: white;
+  color: #ffffff;
 
   border-radius: 3px;
 

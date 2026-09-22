@@ -1,0 +1,42 @@
+{
+  "rows": 2000,
+  "type": {
+    "grammar": 1000,
+    "math": 1000
+  },
+  "difficulty": {
+    "1": 598,
+    "2": 697,
+    "3": 447,
+    "4": 196,
+    "5": 62
+  },
+  "answer_position": {
+    "1": 500,
+    "2": 500,
+    "3": 500,
+    "4": 500
+  },
+  "topics": {
+    "subject-verb agreement across a prepositional phrase": 91,
+    "subject-verb agreement with irregular plurals": 182,
+    "ratios and proportions": 183,
+    "percentages": 183,
+    "subject-verb agreement": 181,
+    "rates and unit conversion": 182,
+    "determiner-noun agreement": 364,
+    "irregular verb forms": 91,
+    "averages and data": 183,
+    "multistep word problems": 183,
+    "subject-verb agreement across a relative clause": 91,
+    "measurement and geometry": 86
+  },
+  "math_candidates": 5489,
+  "exclusions": {
+    "math_scope_or_step_count": 3115,
+    "math_unverified_arithmetic": 158,
+    "math_content_filter": 30,
+    "grammar_rule_check": 817
+  },
+  "checks": "Complete fields; unique items; four distinct options; valid answer indexes; answer text matches; 1-5 difficulty; math annotation arithmetic and final result; grammar source labels."
+}
