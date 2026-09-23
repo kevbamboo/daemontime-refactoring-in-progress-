@@ -1,5 +1,4 @@
-﻿-- Optional setup for a NEW project. Your existing currentGames table needs no
--- replacement or migration for the adapter; do not create daemontime_games.
+-- Setup for a NEW project. Existing currentGames tables need no recreation.
 create table if not exists public."currentGames" (
   game_id uuid primary key default gen_random_uuid(),
   host_id uuid not null,
@@ -7,7 +6,7 @@ create table if not exists public."currentGames" (
   users_in_game uuid[] not null,
   state text not null,
   time_limit smallint not null,
-  number_of_problems smallint not null,
+  number_of_questions smallint not null,
   questions text[],
   time_created timestamptz not null default now()
 );

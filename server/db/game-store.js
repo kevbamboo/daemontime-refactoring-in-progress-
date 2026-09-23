@@ -1,7 +1,7 @@
-﻿// Map the socket model to the existing currentGames PostgreSQL columns.
+// Map the socket model to the existing currentGames PostgreSQL columns.
 export async function createGameStore(
   supabase,
-  { timeLimit, numberOfProblems },
+  { timeLimit, numberOfQuestions },
 ) {
   const games = new Map();
   const rows = new Map();
@@ -10,18 +10,18 @@ export async function createGameStore(
   if (
     !Number.isInteger(timeLimit) ||
     timeLimit <= 0 ||
-    !Number.isInteger(numberOfProblems) ||
-    numberOfProblems <= 0
+    !Number.isInteger(numberOfQuestions) ||
+    numberOfQuestions <= 0
   ) {
     throw new Error(
-      "Configure positive integer game time and problem-count defaults.",
+      "Configure positive integer game time and question-count defaults.",
     );
   }
   for (let offset = 0; ; offset += pageSize) {
     const { data, error } = await supabase
       .from(table)
       .select(
-        "game_id,host_id,host_handle,users_in_game,state,time_limit,number_of_problems",
+        "game_id,host_id,host_handle,users_in_game,state,time_limit,number_of_questions",
       )
       .order("game_id")
       .range(offset, offset + pageSize - 1)
@@ -37,7 +37,7 @@ export async function createGameStore(
         gameId: row.game_id,
         hostId: row.host_id,
         timeLimit: row.time_limit,
-        numberOfProblems: row.number_of_problems,
+        numberOfQuestions: row.number_of_questions,
         players: row.users_in_game.map((id) => ({
           id,
           username:
@@ -87,10 +87,10 @@ export async function createGameStore(
             users_in_game: game.players.map((player) => player.id),
             state: game.started ? "started" : "waiting",
             time_limit: previous?.time_limit ?? game.timeLimit ?? timeLimit,
-            number_of_problems:
-              previous?.number_of_problems ??
-              game.numberOfProblems ??
-              numberOfProblems,
+            number_of_questions:
+              previous?.number_of_questions ??
+              game.numberOfQuestions ??
+              numberOfQuestions,
           }
         : null;
       const query = row
@@ -117,7 +117,7 @@ export async function createGameStore(
           structuredClone({
             ...game,
             timeLimit: row.time_limit,
-            numberOfProblems: row.number_of_problems,
+            numberOfQuestions: row.number_of_questions,
           }),
         );
         rows.set(id, row);

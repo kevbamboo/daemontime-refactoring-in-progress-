@@ -20,9 +20,9 @@ export default function NewGameModal({ onClose }: { onClose: () => void }) {
     if (!form.reportValidity()) return;
     const data = new FormData(form);
     const timeLimit = Number(data.get("timeLimit"));
-    const numberOfProblems = Number(data.get("numberOfProblems"));
+    const numberOfQuestions = Number(data.get("numberOfQuestions"));
     if (
-      ![timeLimit, numberOfProblems].every(
+      ![timeLimit, numberOfQuestions].every(
         (value) => Number.isInteger(value) && value >= 5 && value <= 99,
       )
     ) {
@@ -32,7 +32,7 @@ export default function NewGameModal({ onClose }: { onClose: () => void }) {
     setBusy(true);
     setError("");
     try {
-      await socketService.createGame({ timeLimit, numberOfProblems });
+      await socketService.createGame({ timeLimit, numberOfQuestions });
       onClose();
     } catch (error) {
       setError(
@@ -55,7 +55,19 @@ export default function NewGameModal({ onClose }: { onClose: () => void }) {
     >
       <h2 id="new-game-title">Host a Game</h2>
       <form onSubmit={submit}>
-        <label htmlFor="new-game-time">Time limit (seconds)</label>
+        <label htmlFor="new-game-questions">Number of questions</label>
+        <input
+          id="new-game-questions"
+          name="numberOfQuestions"
+          type="number"
+          min={5}
+          max={99}
+          step={1}
+          defaultValue={5}
+          required
+          disabled={busy}
+        />
+        <label htmlFor="new-game-time">Time limit (seconds/question)</label>
         <input
           id="new-game-time"
           name="timeLimit"
@@ -67,18 +79,6 @@ export default function NewGameModal({ onClose }: { onClose: () => void }) {
           required
           disabled={busy}
           autoFocus
-        />
-        <label htmlFor="new-game-problems">Number of problems</label>
-        <input
-          id="new-game-problems"
-          name="numberOfProblems"
-          type="number"
-          min={5}
-          max={99}
-          step={1}
-          defaultValue={5}
-          required
-          disabled={busy}
         />
         <p className="new-game-hint">Choose whole numbers from 5 to 99.</p>
         {error && <p role="alert">{error}</p>}

@@ -63,7 +63,7 @@ function mathTopic(q) {
   if (/average|mean |median/i.test(q)) return 'averages and data';
   if (/speed|miles per|kilometers per|mph|per hour|per minute|per second|gallons per/i.test(q)) return 'rates and unit conversion';
   if (/ratio|fraction|one.third|two.third|one.fourth|three.fourth|half|twice|double/i.test(q)) return 'ratios and proportions';
-  return 'multistep word problems';
+  return 'multistep word questions';
 }
 
 const mathCandidates = [];
@@ -96,7 +96,7 @@ for (const split of ['train', 'test']) {
 }
 
 // Round-robin across available topics so generic shopping arithmetic does not
-// crowd out percentages, rate problems, averages, or measurement.
+// crowd out percentages, rate questions, averages, or measurement.
 const groups = new Map();
 for (const q of mathCandidates.sort((a,b) => digest(a.q).localeCompare(digest(b.q)))) {
   if (!groups.has(q.topic)) groups.set(q.topic, []);
@@ -138,7 +138,7 @@ for (const [i, q] of selectedMath.entries()) {
     license_url: 'https://github.com/openai/grade-school-math/blob/master/LICENSE',
     modifications: 'Added three numeric distractors and a 1-5 difficulty estimate; removed calculator markup; extracted short explanation from source solution.',
     difficulty_basis: 'Estimated within this practice bank from calculation count; not an SAT/ACT-calibrated rating.',
-    answer_validation: 'Source answer; all embedded arithmetic and final result checked. Word-problem interpretation not independently re-solved.',
+    answer_validation: 'Source answer; all embedded arithmetic and final result checked. Word-question interpretation not independently re-solved.',
   });
   evidence.push({ id: rows.at(-1).id, source: sourceUrl, checks: q.checks });
 }

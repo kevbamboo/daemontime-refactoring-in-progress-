@@ -23,11 +23,11 @@ CSV uses UTF-8 and quoted fields with embedded newlines. Its nine columns match 
 
 Source: https://github.com/openai/grade-school-math
 
-Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian, Mark Chen, Heewoo Jun, Lukasz Kaiser, Matthias Plappert, Jerry Tworek, Jacob Hilton, Reiichiro Nakano, Christopher Hesse, and John Schulman (2021), *Training Verifiers to Solve Math Word Problems*.
+Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian, Mark Chen, Heewoo Jun, Lukasz Kaiser, Matthias Plappert, Jerry Tworek, Jacob Hilton, Reiichiro Nakano, Christopher Hesse, and John Schulman (2021), *Training Verifiers to Solve Math Word Questions*.
 
 License: MIT, copyright (c) 2021 OpenAI. See `LICENSES.md` for the required notice.
 
-Question wording and answer keys come from the source train/test records. Source calculator markup was removed from explanations; the source solution's final line supplies the short explanation. Three numeric distractors and difficulty estimates were added. Source URLs point to original file line numbers (one-based). Selection favors a mix of ratios, percentages, rates, averages, measurement, and multistep word problems.
+Question wording and answer keys come from the source train/test records. Source calculator markup was removed from explanations; the source solution's final line supplies the short explanation. Three numeric distractors and difficulty estimates were added. Source URLs point to original file line numbers (one-based). Selection favors a mix of ratios, percentages, rates, averages, measurement, and multistep word questions.
 
 ### Grammar: BLiMP
 
@@ -41,10 +41,10 @@ Each four-choice item combines four distinct source pairs from one grammatical c
 
 ## Difficulty and checks
 
-Difficulty is a heuristic estimate, not an official SAT/ACT rating or an empirical measure from student performance. Math ratings increase with the number of source calculation steps; longer percentage problems receive an additional increment, capped at 5. Grammar ratings range from 1 (basic determiner agreement) to 4 (agreement across relative clauses).
+Difficulty is a heuristic estimate, not an official SAT/ACT rating or an empirical measure from student performance. Math ratings increase with the number of source calculation steps; longer percentage questions receive an additional increment, capped at 5. Grammar ratings range from 1 (basic determiner agreement) to 4 (agreement across relative clauses).
 
 Checks verify 2,000 unique prompt-and-choice combinations, required fields, four distinct options, answer index/text agreement, difficulty ranges, balanced answer positions (500 per position), source attribution, and CSV round-trip parsing. Identical grammar prompts are intentional; the answer sentences differ.
 
-All selected math calculator annotations and the final numeric result were independently recalculated. This checks arithmetic, not every interpretation of the word problem. Grammar source labels were additionally screened with restricted agreement and irregular-verb rules; ambiguous number forms and suspect labels were excluded. Source sentences can sound semantically unusual because BLiMP is synthetic. The dataset has not received a complete expert review of every question.
+All selected math calculator annotations and the final numeric result were independently recalculated. This checks arithmetic, not every interpretation of the word question. Grammar source labels were additionally screened with restricted agreement and irregular-verb rules; ambiguous number forms and suspect labels were excluded. Source sentences can sound semantically unusual because BLiMP is synthetic. The dataset has not received a complete expert review of every question.
 
 Neither College Board nor ACT authored, calibrated, or endorsed this bank.

@@ -70,7 +70,7 @@
   display: flex;
   flex-direction: column;
   background: #111111;
-  border: 1px solid #292929;
+  border: 1px solid var(--panel-line, #626262);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -86,7 +86,7 @@
   display: flex;
   gap: 2px;
   padding: 8px 8px 0;
-  border-bottom: 1px solid #292929;
+  border-bottom: 1px solid var(--panel-line, #626262);
   background: #111111;
 }
 
@@ -180,7 +180,7 @@
   box-sizing: border-box;
 
   background: #111111;
-  border: 1px solid #292929;
+  border: 1px solid var(--panel-line, #626262);
   border-radius: 4px;
 }
 
@@ -201,7 +201,7 @@
 
   box-sizing: border-box;
 
-  border-bottom: 1px solid #292929;
+  border-bottom: 1px solid var(--panel-line, #626262);
 }
 
 .game-box-header > div {
@@ -297,6 +297,9 @@
 }
 
 .start-game-button {
+  --start-background: #e63946;
+  --start-hover-background: #c92f3b;
+  --start-text: #ffffff;
   position: absolute;
   top: 50%;
   left: 50%;
@@ -306,8 +309,8 @@
   border: none;
   border-radius: 3px;
 
-  background: #e63946;
-  color: #ffffff;
+  background: var(--start-background);
+  color: var(--start-text);
 
   font-size: 12px;
   font-weight: 700;
@@ -316,8 +319,20 @@
   transform: translate(-50%, -50%);
 }
 
-.start-game-button:hover:not(:disabled) {
-  background: #c92f3b;
+.light-theme .start-game-button {
+  --start-background: #81edf7;
+  --start-hover-background: #5edce8;
+  --start-text: #000000;
+}
+
+.start-game-button:hover:not(:disabled),
+.start-game-button:active:not(:disabled) {
+  background: var(--start-hover-background);
+}
+
+.start-game-button:disabled {
+  background: var(--start-background);
+  cursor: wait;
 }
 
 /* =========================

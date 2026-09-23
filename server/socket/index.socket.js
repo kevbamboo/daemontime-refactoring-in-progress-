@@ -29,7 +29,7 @@ export async function loadQuestionBank(supabase) {
       .abortSignal(AbortSignal.timeout(5000));
     if (error || !Array.isArray(data))
       throw new Error(
-        "Unable to load questions. Check the questions table columns.",
+        "Unable to load questions. Check the question bank database schema.",
       );
     questions.push(...data.map(normalizeQuestion));
     if (data.length < 1000) return questions;
@@ -201,10 +201,10 @@ export default function setUpSocket(
       if (
         !options ||
         !validGameSetting(options.timeLimit) ||
-        !validGameSetting(options.numberOfProblems)
+        !validGameSetting(options.numberOfQuestions)
       ) {
         throw new Error(
-          "Time limit and number of problems must be whole numbers from 5 to 99.",
+          "Time limit and number of questions must be whole numbers from 5 to 99.",
         );
       }
       const existing = membership(userId);
@@ -218,7 +218,7 @@ export default function setUpSocket(
         players: [{ id: userId, username: socket.data.username }],
         started: false,
         timeLimit: options.timeLimit,
-        numberOfProblems: options.numberOfProblems,
+        numberOfQuestions: options.numberOfQuestions,
       };
       await store.replace(game, game.gameId);
       attach(game);
@@ -246,16 +246,16 @@ export default function setUpSocket(
       if (!game.started) {
         if (
           !validGameSetting(game.timeLimit) ||
-          !validGameSetting(game.numberOfProblems)
+          !validGameSetting(game.numberOfQuestions)
         ) {
           throw new Error(
-            "Time limit and number of problems must be whole numbers from 5 to 99.",
+            "Time limit and number of questions must be whole numbers from 5 to 99.",
           );
         }
         const bank = await loadQuestions();
-        if (bank.length < game.numberOfProblems)
+        if (bank.length < game.numberOfQuestions)
           throw new Error("Not enough questions available to start this game.");
-        const questions = shuffled(bank).slice(0, game.numberOfProblems);
+        const questions = shuffled(bank).slice(0, game.numberOfQuestions);
         await store.replace(
           {
             ...game,

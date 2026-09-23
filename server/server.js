@@ -32,7 +32,7 @@ app.use("/api", apiRoutes);
 
 const store = await createGameStore(supabase, {
   timeLimit: Number(process.env.GAME_TIME_LIMIT_SECONDS ?? 30),
-  numberOfProblems: Number(process.env.GAME_NUMBER_OF_PROBLEMS ?? 5),
+  numberOfQuestions: Number(process.env.GAME_NUMBER_OF_QUESTIONS ?? 5),
 });
 const stopSockets = setUpSocket(io, {
   store,

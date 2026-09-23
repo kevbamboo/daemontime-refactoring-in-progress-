@@ -1,7 +1,7 @@
 import { io, Socket } from "socket.io-client";
 export type Player = { id: string; username: string };
 export type OnlineUser = Player;
-export type GameOptions = { timeLimit: number; numberOfProblems: number };
+export type GameOptions = { timeLimit: number; numberOfQuestions: number };
 export type Game = GameOptions & {
   gameId: string;
   hostId: string;

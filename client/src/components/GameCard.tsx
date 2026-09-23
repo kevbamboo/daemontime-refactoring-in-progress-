@@ -44,13 +44,13 @@ export default function GameCard({ game, disabled, onJoin }: GameCardProps) {
 
             <div className="game-card-details">
               <div>
-                <strong>{game.numberOfProblems}</strong>
+                <strong>{game.numberOfQuestions}</strong>
                 <span>Questions</span>
               </div>
 
               <div>
                 <strong>{game.timeLimit}</strong>
-                <span>Seconds</span>
+                <span>Seconds/question</span>
               </div>
             </div>
           </div>

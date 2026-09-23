@@ -119,6 +119,8 @@ body.light-theme {
 .light-theme #game,
 .light-theme #login-page,
 .light-theme #signup-page {
+  --panel-line: #292929;
+  --input-line: #333333;
   background: #f3ead2;
   color: #000000;
 }
@@ -171,10 +173,14 @@ body.light-theme {
 
 .light-theme #message-form,
 .light-theme .chat-tabs,
-.light-theme .chat-tabs button,
 .light-theme .online-users {
   background: #fffaf0;
   border-color: #000000;
+}
+
+.light-theme .chat-tabs button {
+  background: #fffaf0;
+  border-color: transparent;
 }
 
 .light-theme .chat-tabs button.active,
@@ -278,7 +284,6 @@ body.light-theme {
 }
 
 .light-theme .new-game-button,
-.light-theme .start-game-button,
 .light-theme #message-button,
 .light-theme #login-form > button[type="submit"],
 .light-theme #signup-form > button[type="submit"],
@@ -305,7 +310,6 @@ body.light-theme {
 }
 
 .light-theme .new-game-button:hover:not(:disabled),
-.light-theme .start-game-button:hover:not(:disabled),
 .light-theme #message-button:hover:not(:disabled),
 .light-theme #login-form > button[type="submit"]:hover:not(:disabled),
 .light-theme #signup-form > button[type="submit"]:hover:not(:disabled),

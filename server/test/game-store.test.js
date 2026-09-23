@@ -1,4 +1,4 @@
-﻿import { test } from "node:test";
+import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createClient } from "@supabase/supabase-js";
 import { createGameStore } from "../db/game-store.js";
@@ -23,6 +23,7 @@ function database() {
             );
           let result = null;
           if (init.method === "GET") {
+            assert.ok(url.searchParams.get("select").split(",").includes("number_of_questions"));
             const start = Number(url.searchParams.get("offset") ?? 0);
             const limit = Number(url.searchParams.get("limit") ?? 1000);
             result = [...records.values()]
@@ -38,7 +39,7 @@ function database() {
               "users_in_game",
               "state",
               "time_limit",
-              "number_of_problems",
+              "number_of_questions",
             ])
               assert.notEqual(row[field], undefined, field);
             assert.equal(typeof row.state, "string");
@@ -68,22 +69,36 @@ function database() {
 }
 const game = {
   timeLimit: 42,
-  numberOfProblems: 17,
+  numberOfQuestions: 17,
   gameId: "game",
   hostId: "a",
   players: [{ id: "a", username: "A" }],
   started: false,
 };
 
+test("number_of_questions supports loading, saving, and deleting", async () => {
+  const db = database();
+  const defaults = { timeLimit: 30, numberOfQuestions: 5 };
+  const store = await createGameStore(db.supabase, defaults);
+  await store.replace(game, game.gameId);
+  assert.equal(db.records.get(game.gameId).number_of_questions, 17);
+  const restarted = await createGameStore(db.supabase, defaults);
+  assert.deepEqual(restarted.list(), [game]);
+  await restarted.replace({ ...game, started: true }, game.gameId);
+  assert.equal(db.records.get(game.gameId).number_of_questions, 17);
+  await restarted.replace(null, game.gameId);
+  assert.equal(db.records.size, 0);
+});
+
 test("solo starts remove the persisted lobby and can leave without database access", async () => {
   const db = database();
-  const store = await createGameStore(db.supabase, { timeLimit: 30, numberOfProblems: 5 });
+  const store = await createGameStore(db.supabase, { timeLimit: 30, numberOfQuestions: 5 });
   await store.replace(game, game.gameId);
   const solo = { ...game, started: true, solo: true };
   await store.replace(solo, game.gameId);
   assert.equal(db.records.size, 0);
   assert.deepEqual(store.list(), [solo]);
-  const restarted = await createGameStore(db.supabase, { timeLimit: 30, numberOfProblems: 5 });
+  const restarted = await createGameStore(db.supabase, { timeLimit: 30, numberOfQuestions: 5 });
   assert.deepEqual(restarted.list(), []);
   db.fail(true);
   await store.replace(solo, game.gameId);
@@ -93,7 +108,7 @@ test("solo starts remove the persisted lobby and can leave without database acce
 
 test("failed solo cleanup preserves the waiting game for retry", async () => {
   const db = database();
-  const store = await createGameStore(db.supabase, { timeLimit: 30, numberOfProblems: 5 });
+  const store = await createGameStore(db.supabase, { timeLimit: 30, numberOfQuestions: 5 });
   await store.replace(game, game.gameId);
   db.fail(true);
   await assert.rejects(store.replace({ ...game, started: true, solo: true }, game.gameId), /Unable to remove solo/);
@@ -103,7 +118,7 @@ test("failed solo cleanup preserves the waiting game for retry", async () => {
 
 test("completed solo results remain displayable without storing the game", async () => {
   const db = database();
-  const store = await createGameStore(db.supabase, { timeLimit: 30, numberOfProblems: 5 });
+  const store = await createGameStore(db.supabase, { timeLimit: 30, numberOfQuestions: 5 });
   await store.replace(game, game.gameId);
   const solo = { ...game, started: true, solo: true };
   await store.replace(solo, game.gameId);
@@ -135,14 +150,14 @@ test("Supabase game store persists writes across reloads and deletes rows", asyn
   const db = database();
   const store = await createGameStore(db.supabase, {
     timeLimit: 30,
-    numberOfProblems: 20,
+    numberOfQuestions: 20,
   });
   await store.replace(game, game.gameId);
   assert.equal(db.records.get(game.gameId).time_limit, 42);
-  assert.equal(db.records.get(game.gameId).number_of_problems, 17);
+  assert.equal(db.records.get(game.gameId).number_of_questions, 17);
   const restarted = await createGameStore(db.supabase, {
     timeLimit: 30,
-    numberOfProblems: 5,
+    numberOfQuestions: 5,
   });
   assert.deepEqual(restarted.list(), [game]);
   const copy = restarted.list();
@@ -153,7 +168,7 @@ test("Supabase game store persists writes across reloads and deletes rows", asyn
     (
       await createGameStore(db.supabase, {
         timeLimit: 25,
-        numberOfProblems: 20,
+        numberOfQuestions: 20,
       })
     ).list().length,
     0,
@@ -163,7 +178,7 @@ test("failed Supabase writes leave the snapshot intact and missing table fails s
   const db = database();
   const store = await createGameStore(db.supabase, {
     timeLimit: 25,
-    numberOfProblems: 20,
+    numberOfQuestions: 20,
   });
   await store.replace(game, game.gameId);
   db.fail(true);
@@ -174,7 +189,7 @@ test("failed Supabase writes leave the snapshot intact and missing table fails s
   await assert.rejects(store.replace(null, game.gameId), /Unable to save/);
   assert.deepEqual(store.list(), [game]);
   await assert.rejects(
-    createGameStore(db.supabase, { timeLimit: 25, numberOfProblems: 20 }),
+    createGameStore(db.supabase, { timeLimit: 25, numberOfQuestions: 20 }),
     /Unable to load/,
   );
 });
@@ -189,14 +204,14 @@ test("startup reads beyond the default Supabase page size", async () => {
       users_in_game: ["a"],
       state: "waiting",
       time_limit: 25,
-      number_of_problems: 20,
+      number_of_questions: 20,
     });
   }
   assert.equal(
     (
       await createGameStore(db.supabase, {
         timeLimit: 25,
-        numberOfProblems: 20,
+        numberOfQuestions: 20,
       })
     ).list().length,
     1001,
@@ -212,11 +227,11 @@ test("existing game settings survive updates and host transfer uses the new hand
     users_in_game: ["a", "b"],
     state: "waiting",
     time_limit: 10,
-    number_of_problems: 5,
+    number_of_questions: 5,
   });
   const store = await createGameStore(db.supabase, {
     timeLimit: 25,
-    numberOfProblems: 20,
+    numberOfQuestions: 20,
   });
   store.rememberPlayer("b", "B");
   const current = store.list()[0];
@@ -231,7 +246,7 @@ test("existing game settings survive updates and host transfer uses the new hand
   );
   const row = db.records.get("game");
   assert.equal(row.time_limit, 10);
-  assert.equal(row.number_of_problems, 5);
+  assert.equal(row.number_of_questions, 5);
   assert.equal(row.host_handle, "B");
   assert.equal(row.state, "started");
   assert.deepEqual(row.users_in_game, ["b"]);

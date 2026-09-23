@@ -1,4 +1,4 @@
-﻿import { test } from "node:test";
+import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { Server } from "socket.io";
@@ -12,7 +12,7 @@ const request = (socket, event, ...args) =>
 test("a game started alone is solo and can be left during countdown", async (t) => {
   const { connect } = await fixture(t);
   const host = await connect("host");
-  const { data: game } = await request(host, "create-game", { timeLimit: 5, numberOfProblems: 5 });
+  const { data: game } = await request(host, "create-game", { timeLimit: 5, numberOfQuestions: 5 });
   const update = once(host, "game-update");
   assert.equal((await request(host, "start-game", game.gameId)).ok, true);
   assert.equal((await update)[0].phase, "countdown");
@@ -32,7 +32,7 @@ test(
     const outsider = await connect("outsider");
     const { data: game } = await request(host, "create-game", {
       timeLimit: 5,
-      numberOfProblems: 5,
+      numberOfQuestions: 5,
     });
     await request(player, "join-game", game.gameId);
     const hostUpdates = [];
@@ -162,7 +162,7 @@ test(
     observer.on("game-update", (update) => observed.push(update));
     const { data: game } = await request(host, "create-game", {
       timeLimit: 30,
-      numberOfProblems: 5,
+      numberOfQuestions: 5,
     });
     await request(player, "join-game", game.gameId);
     const hostUpdate = once(host, "game-update");
@@ -243,18 +243,18 @@ test("identity authorizes host, lobby is idempotent, and membership is singular"
   await request(a, "join-lobby");
   const first = await request(a, "create-game", {
     timeLimit: 30,
-    numberOfProblems: 5,
+    numberOfQuestions: 5,
   });
   assert.equal(store.list().length, 1);
   assert.equal(
-    (await request(a, "create-game", { timeLimit: 30, numberOfProblems: 5 }))
+    (await request(a, "create-game", { timeLimit: 30, numberOfQuestions: 5 }))
       .data.gameId,
     first.data.gameId,
   );
   assert.equal((await request(b, "start-game", first.data.gameId)).ok, false);
   const second = await request(b, "create-game", {
     timeLimit: 30,
-    numberOfProblems: 5,
+    numberOfQuestions: 5,
   });
   assert.equal((await request(a, "join-game", second.data.gameId)).ok, false);
   assert.equal((await request(a, "start-game", first.data.gameId)).ok, true);
@@ -265,12 +265,12 @@ test("malformed events and missing acknowledgments do not break later requests",
   const { connect } = await fixture(t);
   const a = await connect("a", false);
   assert.equal(
-    (await request(a, "create-game", { timeLimit: 30, numberOfProblems: 5 }))
+    (await request(a, "create-game", { timeLimit: 30, numberOfQuestions: 5 }))
       .ok,
     false,
   );
   a.emit("join-lobby");
-  a.emit("create-game", { timeLimit: 30, numberOfProblems: 5 });
+  a.emit("create-game", { timeLimit: 30, numberOfQuestions: 5 });
   a.emit("start-game", {});
   a.emit("lobby-message", {});
   assert.equal((await request(a, "join-game", {})).ok, false);
@@ -284,7 +284,7 @@ test("lobby observers get membership and host snapshots; chat verifies membershi
   const created = once(observer, "games-snapshot");
   const { data: game } = await request(a, "create-game", {
     timeLimit: 30,
-    numberOfProblems: 5,
+    numberOfQuestions: 5,
   });
   await created;
   const changed = once(observer, "games-snapshot");
@@ -310,7 +310,7 @@ test("reconnect restores membership; final disconnect expires and transfers host
   const b = await connect("b");
   const { data: game } = await request(a, "create-game", {
     timeLimit: 30,
-    numberOfProblems: 5,
+    numberOfQuestions: 5,
   });
   await request(b, "join-game", game.gameId);
   a.disconnect();
@@ -337,8 +337,8 @@ test("concurrent creates and joins preserve singular membership and all players"
   const b = await connect("b");
   const c = await connect("c");
   const [first, second] = await Promise.all([
-    request(a, "create-game", { timeLimit: 30, numberOfProblems: 5 }),
-    request(a, "create-game", { timeLimit: 30, numberOfProblems: 5 }),
+    request(a, "create-game", { timeLimit: 30, numberOfQuestions: 5 }),
+    request(a, "create-game", { timeLimit: 30, numberOfQuestions: 5 }),
   ]);
   assert.equal(first.data.gameId, second.data.gameId);
   assert.equal(store.list().length, 1);
@@ -358,13 +358,13 @@ test("failed asynchronous writes return an error and do not poison the action qu
   };
   const result = await request(a, "create-game", {
     timeLimit: 30,
-    numberOfProblems: 5,
+    numberOfQuestions: 5,
   });
   assert.equal(result.ok, false);
   assert.equal(store.list().length, 0);
   store.replace = replace;
   assert.equal(
-    (await request(a, "create-game", { timeLimit: 30, numberOfProblems: 5 }))
+    (await request(a, "create-game", { timeLimit: 30, numberOfQuestions: 5 }))
       .ok,
     true,
   );
@@ -376,13 +376,13 @@ test("game settings accept both boundaries and reject invalid requests without c
   for (const options of [
     undefined,
     {},
-    { timeLimit: 4, numberOfProblems: 5 },
-    { timeLimit: 100, numberOfProblems: 5 },
-    { timeLimit: 5, numberOfProblems: 4 },
-    { timeLimit: 5, numberOfProblems: 100 },
-    { timeLimit: 5.5, numberOfProblems: 5 },
-    { timeLimit: 5, numberOfProblems: 5.5 },
-    { timeLimit: "30", numberOfProblems: 5 },
+    { timeLimit: 4, numberOfQuestions: 5 },
+    { timeLimit: 100, numberOfQuestions: 5 },
+    { timeLimit: 5, numberOfQuestions: 4 },
+    { timeLimit: 5, numberOfQuestions: 100 },
+    { timeLimit: 5.5, numberOfQuestions: 5 },
+    { timeLimit: 5, numberOfQuestions: 5.5 },
+    { timeLimit: "30", numberOfQuestions: 5 },
   ]) {
     assert.equal((await request(a, "create-game", options)).ok, false);
   }
@@ -390,11 +390,11 @@ test("game settings accept both boundaries and reject invalid requests without c
   for (const value of [5, 99]) {
     const result = await request(a, "create-game", {
       timeLimit: value,
-      numberOfProblems: value,
+      numberOfQuestions: value,
     });
     assert.equal(result.ok, true);
     assert.equal(result.data.timeLimit, value);
-    assert.equal(result.data.numberOfProblems, value);
+    assert.equal(result.data.numberOfQuestions, value);
     assert.equal(store.list()[0].timeLimit, value);
     await request(a, "leave-game", result.data.gameId);
   }
