@@ -39,13 +39,23 @@
 }
 .new-game-actions button {
   padding: 10px 16px;
-  border: 0;
+  border: 1px solid #555;
   border-radius: 4px;
+  background: #222;
+  color: #fff;
   cursor: pointer;
+  transition: background 0.15s ease;
 }
 .new-game-actions button[type="submit"] {
+  border: 2px solid #ff7780;
   background: #e63946;
   color: #fff;
+}
+.new-game-actions button:hover:not(:disabled) {
+  background: #333;
+}
+.new-game-actions button[type="submit"]:hover:not(:disabled) {
+  background: #c92f3b;
 }
 .new-game-actions button:disabled {
   opacity: 0.6;

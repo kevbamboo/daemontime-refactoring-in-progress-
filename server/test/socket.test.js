@@ -8,6 +8,20 @@ import setUpSocket, { loadQuestionBank } from "../socket/index.socket.js";
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const request = (socket, event, ...args) =>
   socket.timeout(2000).emitWithAck(event, ...args);
+
+test("a game started alone is solo and can be left during countdown", async (t) => {
+  const { connect } = await fixture(t);
+  const host = await connect("host");
+  const { data: game } = await request(host, "create-game", { timeLimit: 5, numberOfProblems: 5 });
+  const update = once(host, "game-update");
+  assert.equal((await request(host, "start-game", game.gameId)).ok, true);
+  assert.equal((await update)[0].phase, "countdown");
+  const { data: games } = await request(host, "open-games");
+  assert.equal(games[0].solo, true);
+  assert.equal((await request(host, "leave-game", game.gameId)).ok, true);
+  assert.deepEqual((await request(host, "open-games")).data, []);
+  assert.equal((await request(host, "submit-answer", game.gameId, 0, 1)).ok, false);
+});
 test(
   "full match sends private questions, records submissions, reconnects, and ends in review",
   { timeout: 25000 },

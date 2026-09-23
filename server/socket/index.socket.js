@@ -257,7 +257,12 @@ export default function setUpSocket(
           throw new Error("Not enough questions available to start this game.");
         const questions = shuffled(bank).slice(0, game.numberOfProblems);
         await store.replace(
-          { ...game, started: true, startedAt: Date.now() },
+          {
+            ...game,
+            started: true,
+            startedAt: Date.now(),
+            solo: game.players.length === 1,
+          },
           id,
         );
         publish();

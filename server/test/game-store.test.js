@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { createClient } from "@supabase/supabase-js";
 import { createGameStore } from "../db/game-store.js";
+import { createGameSessions } from "../socket/game-session.js";
 
 function database() {
   const records = new Map();
@@ -73,6 +74,62 @@ const game = {
   players: [{ id: "a", username: "A" }],
   started: false,
 };
+
+test("solo starts remove the persisted lobby and can leave without database access", async () => {
+  const db = database();
+  const store = await createGameStore(db.supabase, { timeLimit: 30, numberOfProblems: 5 });
+  await store.replace(game, game.gameId);
+  const solo = { ...game, started: true, solo: true };
+  await store.replace(solo, game.gameId);
+  assert.equal(db.records.size, 0);
+  assert.deepEqual(store.list(), [solo]);
+  const restarted = await createGameStore(db.supabase, { timeLimit: 30, numberOfProblems: 5 });
+  assert.deepEqual(restarted.list(), []);
+  db.fail(true);
+  await store.replace(solo, game.gameId);
+  await store.replace(null, game.gameId);
+  assert.deepEqual(store.list(), []);
+});
+
+test("failed solo cleanup preserves the waiting game for retry", async () => {
+  const db = database();
+  const store = await createGameStore(db.supabase, { timeLimit: 30, numberOfProblems: 5 });
+  await store.replace(game, game.gameId);
+  db.fail(true);
+  await assert.rejects(store.replace({ ...game, started: true, solo: true }, game.gameId), /Unable to remove solo/);
+  assert.deepEqual(store.list(), [game]);
+  assert.equal(db.records.size, 1);
+});
+
+test("completed solo results remain displayable without storing the game", async () => {
+  const db = database();
+  const store = await createGameStore(db.supabase, { timeLimit: 30, numberOfProblems: 5 });
+  await store.replace(game, game.gameId);
+  const solo = { ...game, started: true, solo: true };
+  await store.replace(solo, game.gameId);
+  let advance;
+  const sessions = createGameSessions({
+    emit() {},
+    now: () => 0,
+    schedule(fn) { advance = fn; },
+    cancel() {},
+  });
+  sessions.start(solo, [{ text: "Question", choices: ["a", "b", "c", "d"], correctAnswer: 1 }]);
+  advance();
+  sessions.submit(game.gameId, "a", 0, 1);
+  advance();
+  const result = sessions.snapshot(game.gameId, "a");
+  assert.equal(result.phase, "finished");
+  assert.equal(result.review[0].points, 1);
+  assert.equal(db.records.size, 0);
+  assert.deepEqual(store.list(), [solo]);
+  db.fail(true);
+  await store.replace(null, game.gameId);
+  sessions.leave(game.gameId, "a");
+  assert.equal(sessions.snapshot(game.gameId, "a"), null);
+  assert.deepEqual(store.list(), []);
+  assert.equal(db.records.size, 0);
+});
 
 test("Supabase game store persists writes across reloads and deletes rows", async () => {
   const db = database();

@@ -7,6 +7,7 @@ export type Game = GameOptions & {
   hostId: string;
   players: Player[];
   started: boolean;
+  solo?: boolean;
   startedAt?: number;
 };
 export type ChatMessage = {

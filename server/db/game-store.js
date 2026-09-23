@@ -62,6 +62,21 @@ export async function createGameStore(
     },
     async replace(game, id) {
       const previous = rows.get(id);
+      // Solo matches remain available to sockets, but have no persisted game row.
+      if (game?.solo || (!game && games.get(id)?.solo)) {
+        if (previous) {
+          const { error } = await supabase
+            .from(table)
+            .delete()
+            .eq("game_id", id)
+            .abortSignal(AbortSignal.timeout(5000));
+          if (error) throw new Error("Unable to remove solo game from the database.", { cause: error });
+        }
+        rows.delete(id);
+        if (game) games.set(id, structuredClone(game));
+        else games.delete(id);
+        return;
+      }
       const row = game
         ? {
             game_id: id,

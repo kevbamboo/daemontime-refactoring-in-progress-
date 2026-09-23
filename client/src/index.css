@@ -289,21 +289,41 @@ body.light-theme {
   color: #000000;
 }
 
+.light-theme .new-game-button,
+.light-theme .new-game-actions button[type="submit"] {
+  border-color: #1f6f9f;
+}
+
+.light-theme .leave-button.leave-highlight {
+  box-shadow: 0 0 0 2px #b8b8b8;
+}
+
 .light-theme .logo-mark,
 .light-theme .modal-mark {
   background: #e63946;
   color: #ffffff;
 }
 
-.light-theme .new-game-button:hover,
-.light-theme .start-game-button:hover,
-.light-theme #message-button:hover,
-.light-theme #login-form > button[type="submit"]:hover,
-.light-theme #signup-form > button[type="submit"]:hover,
-.light-theme .guest-button:hover,
-.light-theme .game-primary-button:hover,
-.light-theme .leave-button.leave-highlight:hover:not(:disabled) {
+.light-theme .new-game-button:hover:not(:disabled),
+.light-theme .start-game-button:hover:not(:disabled),
+.light-theme #message-button:hover:not(:disabled),
+.light-theme #login-form > button[type="submit"]:hover:not(:disabled),
+.light-theme #signup-form > button[type="submit"]:hover:not(:disabled),
+.light-theme .guest-button:hover:not(:disabled),
+.light-theme .game-primary-button:hover:not(:disabled),
+.light-theme .leave-button.leave-highlight:hover:not(:disabled),
+.light-theme .new-game-actions button[type="submit"]:hover:not(:disabled) {
   background: #5edce8;
+}
+
+.light-theme .new-game-actions button[type="button"]:hover:not(:disabled) {
+  background: #f2f2f2;
+}
+
+.light-theme .leave-button.leave-highlight:hover:not(:disabled) {
+  box-shadow:
+    0 0 0 2px #a8a8a8,
+    0 0 14px #e6394666;
 }
 
 .light-theme .forgot-password a,
@@ -327,7 +347,6 @@ body.light-theme {
   accent-color: #81edf7;
 }
 
-.light-theme .game-countdown .game-timer,
 .light-theme .explanation-toggle input:checked + .switch-track {
   color: #000000;
   background: #81edf7;

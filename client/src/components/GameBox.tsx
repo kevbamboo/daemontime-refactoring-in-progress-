@@ -25,6 +25,7 @@ export default function GameBox() {
   const newGameButtonRef = useRef<HTMLButtonElement>(null);
   const [games, setGames] = useState<Game[]>([]);
   const [gameUpdate, setGameUpdate] = useState<GameUpdate | null>(null);
+  const [showConnectionFallback, setShowConnectionFallback] = useState(false);
   const [, redraw] = useState(0);
   const [busy, setBusy] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -32,6 +33,18 @@ export default function GameBox() {
     "lobby",
   );
   const [, redrawUsers] = useState(0);
+  useEffect(() => {
+    if (socketService.ready) {
+      setShowConnectionFallback(false);
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setShowConnectionFallback(true);
+    }, 5000);
+
+    return () => window.clearTimeout(timeout);
+  }, [socketService.ready]);
   useEffect(() => {
     let previousGameId: string | undefined;
     const gamesOff = socketService.subscribeToGames((nextGames) => {
@@ -73,16 +86,20 @@ export default function GameBox() {
   return (
     <div id="game">
       <h1 className="game-title">Daemon Time</h1>
-      {socketService.error && <p role="alert">{socketService.error}</p>}
+      {socketService.error && showConnectionFallback && (
+        <p role="alert">{socketService.error}</p>
+      )}
       {!socketService.ready ? (
-        <div>
-          Connecting…{" "}
-          <button
-            onClick={() => void action(() => socketService.retryConnection())}
-          >
-            Retry
-          </button>
-        </div>
+        showConnectionFallback ? (
+          <div className="connection-overlay">
+            Connecting…{" "}
+            <button
+              onClick={() => void action(() => socketService.retryConnection())}
+            >
+              Retry
+            </button>
+          </div>
+        ) : null
       ) : (
         <>
           <div id="game-box">
@@ -123,7 +140,7 @@ export default function GameBox() {
                       ?.username ?? "Host"}
                     's Game
                   </h2>
-                  {(!game.started || gameEnded) && (
+                  {(!game.started || game.solo || gameEnded) && (
                     <button
                       className={`leave-button${gameEnded ? " leave-highlight" : ""}`}
                       disabled={busy}

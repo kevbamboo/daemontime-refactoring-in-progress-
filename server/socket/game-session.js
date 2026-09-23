@@ -156,6 +156,7 @@ export function createGameSessions({
       const correctBefore = Object.values(answers).filter(
         (answer) => answer.points > 0,
       ).length;
+      // players is the starting roster; departures do not lower question points.
       const points = correct ? session.players.length - correctBefore : 0;
       answers[userId] = { choice, points };
       session.scores[userId] += points;

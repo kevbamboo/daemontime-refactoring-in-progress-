@@ -5,7 +5,7 @@ import {
   normalizeQuestion,
 } from "../socket/game-session.js";
 
-function fixture(count = 2) {
+function fixture(count = 2, playerCount = 2) {
   let clock = 0;
   let nextId = 0;
   const timers = new Map();
@@ -33,10 +33,10 @@ function fixture(count = 2) {
     {
       gameId: "game",
       timeLimit: 5,
-      players: [
-        { id: "a", username: "A" },
-        { id: "b", username: "B" },
-      ],
+      players: ["a", "b", "c"].slice(0, playerCount).map((id) => ({
+        id,
+        username: id.toUpperCase(),
+      })),
     },
     questions,
   );
@@ -100,6 +100,52 @@ test("3-second countdown, question deadline, 3-second scoreboard, and final pers
   assert.equal(get("b").review[1].longExplanation, "Long");
   assert.equal(get("a").scores.find((p) => p.id === "a").score, 2);
   assert.equal(get("b").scores.find((p) => p.id === "b").score, 1);
+});
+
+test("solo answers award one for correct and zero for incorrect through final review", () => {
+  const { sessions, get, tick } = fixture(2, 1);
+  tick(3000);
+  sessions.submit("game", "a", 0, 2);
+  assert.equal(get("a").scores[0].score, 1);
+  tick(3000);
+  sessions.submit("game", "a", 1, 1);
+  tick(3000);
+  assert.equal(get("a").phase, "finished");
+  assert.equal(get("a").scores[0].score, 1);
+  assert.deepEqual(get("a").review.map((question) => question.points), [1, 0]);
+});
+
+test("three players earn 3 and 2 for correct answers in order, while wrong earns zero", () => {
+  const { sessions, get, tick } = fixture(2, 3);
+  tick(3000);
+  sessions.submit("game", "c", 0, 1);
+  sessions.submit("game", "b", 0, 2);
+  sessions.submit("game", "a", 0, 2);
+  assert.deepEqual(get("a").scores.map(({ id, score }) => [id, score]), [
+    ["b", 3], ["a", 2], ["c", 0],
+  ]);
+  tick(3000);
+  sessions.submit("game", "a", 1, 2);
+  sessions.submit("game", "b", 1, 2);
+  sessions.submit("game", "c", 1, 2);
+  tick(3000);
+  assert.deepEqual(get("a").review.map((question) => question.points), [2, 3]);
+  assert.deepEqual(get("b").review.map((question) => question.points), [3, 2]);
+  assert.deepEqual(get("c").review.map((question) => question.points), [0, 1]);
+});
+
+test("departures preserve the starting player count and earlier correct answer rank", () => {
+  const { sessions, get, tick } = fixture(2, 3);
+  tick(3000);
+  sessions.submit("game", "c", 0, 2);
+  sessions.leave("game", "c");
+  sessions.submit("game", "a", 0, 2);
+  sessions.submit("game", "b", 0, 2);
+  tick(3000);
+  sessions.leave("game", "b");
+  sessions.submit("game", "a", 1, 2);
+  tick(3000);
+  assert.deepEqual(get("a").review.map((question) => question.points), [2, 3]);
 });
 
 test("rejects outsiders, invalid choices, duplicate, stale, early and late submissions", () => {
